@@ -1,0 +1,98 @@
+==================================================================
+                    RAGE METER - GETTING STARTED
+==================================================================
+
+Welcome to your Rage Meter! Follow these simple steps to get raging.
+
+==================================================================
+STEP 1: INSTALL DEPENDENCIES
+==================================================================
+
+Open terminal in this directory and run:
+  npm install
+
+==================================================================
+STEP 2: SET UP FIREBASE (IMPORTANT!)
+==================================================================
+
+You MUST configure Firebase before the app works!
+
+1. Go to: https://console.firebase.google.com/
+2. Create a new project
+3. Enable Firestore Database
+4. Enable Authentication (Email/Password)
+5. Create a user account
+6. Copy Firebase configuration
+
+See FIREBASE_SETUP.md for detailed step-by-step instructions.
+
+==================================================================
+STEP 3: ADD FIREBASE CONFIG
+==================================================================
+
+Open: src/config/firebase.ts
+Replace the placeholder values with your Firebase config
+
+==================================================================
+STEP 4: START THE APP
+==================================================================
+
+Run: npm run dev
+
+Open browser to: http://localhost:5173
+
+==================================================================
+STEP 5: LOG IN AND RAGE
+==================================================================
+
+1. Click "SIGN IN TO MASH"
+2. Enter your credentials
+3. Mash that SPACEBAR! 🔥💥
+
+==================================================================
+DOCUMENTATION FILES
+==================================================================
+
+README.md              - Main documentation
+QUICKSTART.md          - 5-minute setup guide
+FIREBASE_SETUP.md      - Firebase configuration steps
+PROJECT_SUMMARY.md     - Feature overview
+QUICK_REFERENCE.md     - Quick reference card
+GETTING_STARTED.txt    - This file
+
+==================================================================
+NEED HELP?
+==================================================================
+
+1. Read FIREBASE_SETUP.md for Firebase issues
+2. Check browser console for errors
+3. Verify Firebase config is correct
+4. Make sure you created a user account
+
+==================================================================
+KEY COMMANDS
+==================================================================
+
+npm run dev       - Start development server
+npm run build     - Build for production
+npm run preview   - Preview production build
+npm run lint      - Check code quality
+
+==================================================================
+FEATURES
+==================================================================
+
+✅ Mash spacebar to increase rage
+✅ Password-protected mashing
+✅ Auto-reset at midnight PST
+✅ Daily, weekly, monthly tracking
+✅ Historical data viewer with charts
+✅ Fiery visual effects
+✅ Developer reset controls
+
+==================================================================
+READY TO RAGE? 🔥
+
+Go to FIREBASE_SETUP.md and get started!
+==================================================================
+

@@ -1,0 +1,246 @@
+.history-container {
+  min-height: 100vh;
+  background: linear-gradient(to bottom, #1a0000, #000, #1a0000);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.history-nav {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.nav-link {
+  color: #ff4500;
+  text-decoration: none;
+  font-size: 18px;
+  font-weight: bold;
+  padding: 10px 20px;
+  border: 2px solid #ff4500;
+  border-radius: 5px;
+  background: rgba(255, 69, 0, 0.1);
+  transition: all 0.3s;
+  display: inline-block;
+}
+
+.nav-link:hover {
+  background: rgba(255, 69, 0, 0.3);
+  transform: scale(1.05);
+}
+
+.history-title {
+  font-size: 4rem;
+  color: #ff4500;
+  text-shadow: 
+    0 0 20px #ff4500,
+    0 0 40px #ff4500,
+    0 0 60px #ff0000;
+  margin-bottom: 30px;
+  text-align: center;
+  animation: pulse 2s infinite;
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  width: 100%;
+  max-width: 1200px;
+  margin-bottom: 40px;
+}
+
+.summary-card {
+  background: linear-gradient(to bottom, rgba(255, 69, 0, 0.1), rgba(0, 0, 0, 0.3));
+  border: 2px solid #ff4500;
+  border-radius: 15px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.3s;
+}
+
+.summary-card:hover {
+  transform: translateY(-5px);
+  border-color: #ff6600;
+  box-shadow: 0 0 30px rgba(255, 69, 0, 0.5);
+}
+
+.summary-label {
+  font-size: 1rem;
+  color: #ff8800;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.summary-value {
+  font-size: 2.5rem;
+  font-weight: 900;
+  text-shadow: 0 0 20px currentColor;
+}
+
+.red-glow {
+  color: #ff0000;
+}
+
+.orange-glow {
+  color: #ff4500;
+}
+
+.yellow-glow {
+  color: #ffaa00;
+}
+
+.timeframe-selector {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.timeframe-btn {
+  padding: 12px 30px;
+  font-size: 16px;
+  font-weight: bold;
+  background: transparent;
+  color: #ff4500;
+  border: 2px solid #ff4500;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.timeframe-btn:hover {
+  background: rgba(255, 69, 0, 0.2);
+  transform: scale(1.05);
+}
+
+.timeframe-btn.active {
+  background: linear-gradient(to bottom, #ff4500, #ff0000);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(255, 69, 0, 0.5);
+}
+
+.chart-container {
+  width: 100%;
+  max-width: 1200px;
+  margin-bottom: 40px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 20px;
+  border: 2px solid #ff4500;
+}
+
+.chart-wrapper {
+  height: 400px;
+  position: relative;
+}
+
+.data-table-container {
+  width: 100%;
+  max-width: 1200px;
+  margin-top: 20px;
+}
+
+.table-title {
+  font-size: 2rem;
+  color: #ff4500;
+  text-shadow: 0 0 20px #ff4500;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.data-table {
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 15px;
+  border: 2px solid #ff4500;
+  overflow: hidden;
+}
+
+.table-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: rgba(255, 69, 0, 0.2);
+  border-bottom: 2px solid #ff4500;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid rgba(255, 69, 0, 0.3);
+  transition: all 0.3s;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.table-row:hover {
+  background: rgba(255, 69, 0, 0.1);
+}
+
+.table-cell {
+  padding: 15px;
+  font-size: 16px;
+  color: #ff8800;
+}
+
+.header-cell {
+  font-weight: bold;
+  color: #ff4500;
+  text-transform: uppercase;
+}
+
+.rage-value {
+  color: #ff6600;
+  font-weight: bold;
+  font-size: 18px;
+  text-shadow: 0 0 10px currentColor;
+}
+
+.no-data {
+  padding: 40px;
+  text-align: center;
+  color: #ff8800;
+  font-size: 18px;
+}
+
+.loading-text {
+  font-size: 3rem;
+  color: #ff4500;
+  text-shadow: 0 0 20px #ff4500;
+  animation: pulse 1s infinite;
+}
+
+@media (max-width: 768px) {
+  .history-title {
+    font-size: 2.5rem;
+  }
+  
+  .summary-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .timeframe-selector {
+    flex-direction: column;
+  }
+  
+  .timeframe-btn {
+    width: 100%;
+  }
+  
+  .chart-wrapper {
+    height: 300px;
+  }
+  
+  .table-cell {
+    font-size: 14px;
+    padding: 10px;
+  }
+}
+
