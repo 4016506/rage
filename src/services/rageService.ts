@@ -37,27 +37,44 @@ const DAILY_COLLECTION = 'daily_rage';
 /**
  * Get current date in YYYY-MM-DD format in PST timezone
  */
-function getCurrentDatePST(): string {
-  const now = new Date();
-  const pstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-  return pstDate.toISOString().split('T')[0];
+function getCurrentDatePST(baseDate: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Los_Angeles'
+  }).format(baseDate);
 }
 
 /**
  * Get current day of week (0 = Sunday, 1 = Monday, etc.) in PST
  */
-function getCurrentDayOfWeekPST(): number {
-  const now = new Date();
-  const pstDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-  return pstDate.getDay();
+function getCurrentDayOfWeekPST(baseDate: Date = new Date()): number {
+  return new Date(baseDate.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })).getDay();
 }
 
 /**
- * Get current timestamp in PST
+ * Determine the offset (in minutes) between PST/PDT and UTC for a given date
  */
-function getCurrentTimestampPST(): Date {
-  const now = new Date();
-  return new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+function getPSTOffsetMinutes(baseDate: Date = new Date()): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Los_Angeles',
+    timeZoneName: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).formatToParts(baseDate);
+
+  const timeZoneName = parts.find((part) => part.type === 'timeZoneName')?.value || 'PST';
+  return timeZoneName === 'PDT' ? -420 : -480;
+}
+
+/**
+ * Get the Date object representing midnight (start of day) in PST for provided date
+ */
+function getStartOfDayPST(baseDate: Date = new Date()): Date {
+  const dateString = getCurrentDatePST(baseDate);
+  const [year, month, day] = dateString.split('-').map(Number);
+  const offsetMinutes = getPSTOffsetMinutes(baseDate);
+
+  const utcMillis = Date.UTC(year, month - 1, day, 0, 0, 0) - offsetMinutes * 60 * 1000;
+  return new Date(utcMillis);
 }
 
 /**
@@ -69,13 +86,14 @@ export async function getRageStats(): Promise<RageStats> {
   if (!statsDoc.exists()) {
     // Initialize stats
     const today = getCurrentDatePST();
+    const startOfDay = getStartOfDayPST();
     const initialStats: RageStats = {
       currentScore: 0,
       today,
       allTimeHigh: 0,
       weeklyTotal: 0,
       monthlyTotal: 0,
-      lastReset: Timestamp.fromDate(getCurrentTimestampPST())
+      lastReset: Timestamp.fromDate(startOfDay)
     };
     
     await setDoc(doc(db, 'stats', STATS_DOC_ID), initialStats);
@@ -85,10 +103,14 @@ export async function getRageStats(): Promise<RageStats> {
   const data = statsDoc.data();
   
   // Check if we need to reset for a new day
-  const currentDate = getCurrentDatePST();
-  if (data.today !== currentDate) {
-    const lastReset = getCurrentTimestampPST();
-    lastReset.setHours(0, 0, 0, 0);
+  const now = new Date();
+  const currentDate = getCurrentDatePST(now);
+  const lastResetDateStr = data.lastReset
+    ? getCurrentDatePST(data.lastReset.toDate())
+    : null;
+
+  if (data.today !== currentDate || lastResetDateStr !== currentDate) {
+    const lastReset = getStartOfDayPST(now);
     
     const stats: RageStats = {
       currentScore: 0,
@@ -104,17 +126,21 @@ export async function getRageStats(): Promise<RageStats> {
   }
   
   // Check if we need to reset weekly total (Monday)
-  const dayOfWeek = getCurrentDayOfWeekPST();
-  const lastResetDate = data.lastReset.toDate();
-  const lastResetDateStr = lastResetDate.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }).split(',')[0];
-  const currentDateStr = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }).split(',')[0];
+  const dayOfWeek = getCurrentDayOfWeekPST(now);
   
   // Reset weekly if it's Monday and we haven't reset yet today
-  if (dayOfWeek === 1 && lastResetDateStr !== currentDateStr) {
+  if (dayOfWeek === 1 && lastResetDateStr !== currentDate) {
+    const resetTimestamp = getStartOfDayPST(now);
+
     await updateDoc(doc(db, 'stats', STATS_DOC_ID), {
       weeklyTotal: 0,
-      monthlyTotal: 0
+      monthlyTotal: 0,
+      lastReset: Timestamp.fromDate(resetTimestamp)
     });
+
+    data.weeklyTotal = 0;
+    data.monthlyTotal = 0;
+    data.lastReset = Timestamp.fromDate(resetTimestamp);
   }
   
   return data as RageStats;
@@ -146,6 +172,26 @@ export async function incrementRage(amount: number = 1): Promise<void> {
 }
 
 /**
+ * Calculate the true all-time high from historical daily scores
+ * This includes all saved daily scores, which represents what was actually achieved
+ */
+async function calculateTrueAllTimeHigh(): Promise<number> {
+  const dailyQuery = query(collection(db, DAILY_COLLECTION));
+  const snapshot = await getDocs(dailyQuery);
+  let maxScore = 0;
+  
+  snapshot.forEach((docSnapshot) => {
+    const data = docSnapshot.data();
+    const score = data.score || 0;
+    if (score > maxScore) {
+      maxScore = score;
+    }
+  });
+  
+  return maxScore;
+}
+
+/**
  * Reset current score to 0
  */
 export async function resetCurrentScore(): Promise<void> {
@@ -160,25 +206,53 @@ export async function resetCurrentScore(): Promise<void> {
     monthlyTotal: increment(-amountToDeduct)
   };
   
-  // If current score was the all-time high, find the new all-time high
+  // If current score was the all-time high, recalculate the true all-time high
   if (stats.currentScore === stats.allTimeHigh && stats.currentScore > 0) {
-    // Get all historical daily scores to find the new max
-    const dailyQuery = query(collection(db, DAILY_COLLECTION));
-    const snapshot = await getDocs(dailyQuery);
-    let maxScore = 0;
-    
-    snapshot.forEach((docSnapshot) => {
-      const data = docSnapshot.data();
-      const score = data.score || 0;
-      if (score > maxScore) {
-        maxScore = score;
-      }
-    });
-    
-    // Also check if weekly or monthly totals could be higher (though unlikely)
-    // But the all-time high should be based on daily scores, not totals
-    updates.allTimeHigh = maxScore;
+    const trueAllTimeHigh = await calculateTrueAllTimeHigh();
+    updates.allTimeHigh = trueAllTimeHigh;
   }
+  
+  await updateDoc(statsRef, updates);
+}
+
+/**
+ * Set rage score to a specific value
+ */
+export async function setRageScore(targetScore: number): Promise<void> {
+  if (targetScore < 0) {
+    throw new Error('Rage score cannot be negative');
+  }
+  
+  const stats = await getRageStats();
+  const statsRef = doc(db, 'stats', STATS_DOC_ID);
+  const difference = targetScore - stats.currentScore;
+  
+  // Update current score and adjust weekly/monthly totals by the difference
+  const updates: any = {
+    currentScore: targetScore,
+    weeklyTotal: increment(difference),
+    monthlyTotal: increment(difference)
+  };
+  
+  // Handle all-time high update
+  if (targetScore > stats.allTimeHigh) {
+    // New score is higher than current all-time high
+    updates.allTimeHigh = targetScore;
+  } else if (stats.currentScore === stats.allTimeHigh && targetScore < stats.currentScore) {
+    // We're lowering the score, and the current score WAS the all-time high
+    // Need to recalculate the true all-time high from historical records
+    // This ensures we use the actual saved maximum, not the temporary unsaved score
+    const trueAllTimeHigh = await calculateTrueAllTimeHigh();
+    // Use the max of historical records and the new target score (in case target is still high)
+    // But if historical records are higher, use those (they represent saved achievements)
+    updates.allTimeHigh = Math.max(trueAllTimeHigh, targetScore);
+  } else if (stats.currentScore === stats.allTimeHigh && targetScore === 0) {
+    // Special case: resetting to 0 when current score was the all-time high
+    const trueAllTimeHigh = await calculateTrueAllTimeHigh();
+    updates.allTimeHigh = trueAllTimeHigh;
+  }
+  // If targetScore <= stats.allTimeHigh but currentScore !== allTimeHigh,
+  // we don't need to change allTimeHigh (it's still valid)
   
   await updateDoc(statsRef, updates);
 }
@@ -187,14 +261,16 @@ export async function resetCurrentScore(): Promise<void> {
  * Clear all statistics
  */
 export async function clearAllStats(): Promise<void> {
-  const today = getCurrentDatePST();
+  const now = new Date();
+  const today = getCurrentDatePST(now);
+  const startOfDay = getStartOfDayPST(now);
   await setDoc(doc(db, 'stats', STATS_DOC_ID), {
     currentScore: 0,
     today,
     allTimeHigh: 0,
     weeklyTotal: 0,
     monthlyTotal: 0,
-    lastReset: Timestamp.fromDate(getCurrentTimestampPST())
+    lastReset: Timestamp.fromDate(startOfDay)
   });
   
   // Clear daily collection

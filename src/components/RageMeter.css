@@ -295,6 +295,45 @@
   background: rgba(255, 0, 0, 0.4);
 }
 
+.dev-set-score {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.dev-score-input {
+  padding: 15px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 10px;
+  border: 2px solid #ff4500;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  width: 150px;
+  text-align: center;
+}
+
+.dev-score-input:focus {
+  outline: none;
+  border-color: #ff6600;
+  background: rgba(0, 0, 0, 0.7);
+  box-shadow: 0 0 10px rgba(255, 69, 0, 0.5);
+}
+
+.dev-score-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.set-score-btn {
+  background: rgba(255, 69, 0, 0.2);
+  color: #ff4500;
+  border: 2px solid #ff4500;
+}
+
+.set-score-btn:hover {
+  background: rgba(255, 69, 0, 0.4);
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -403,6 +442,15 @@
   
   .dev-buttons {
     flex-direction: column;
+  }
+  
+  .dev-set-score {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .dev-score-input {
+    width: 100%;
   }
   
   .flame {

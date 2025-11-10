@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { getRageStats, incrementRage, resetCurrentScore, clearAllStats } from '../services/rageService';
+import { getRageStats, incrementRage, resetCurrentScore, clearAllStats, setRageScore } from '../services/rageService';
 import { signIn, signOut } from '../services/authService';
 import type { User } from 'firebase/auth';
 import type { RageStats } from '../services/rageService';
@@ -20,6 +20,9 @@ function RageMeter({ user }: RageMeterProps) {
   const [authError, setAuthError] = useState('');
   const [intensity, setIntensity] = useState(0);
   const [showDevButtons, setShowDevButtons] = useState(false);
+  const [targetScoreInput, setTargetScoreInput] = useState('');
+  const animationResetRef = useRef<number | null>(null);
+  const intensityResetRef = useRef<number | null>(null);
 
   // Hide dev buttons when user signs out
   useEffect(() => {
@@ -50,6 +53,35 @@ function RageMeter({ user }: RageMeterProps) {
     return () => clearInterval(interval);
   }, [loadStats]);
 
+  useEffect(() => {
+    return () => {
+      if (animationResetRef.current) {
+        clearTimeout(animationResetRef.current);
+      }
+      if (intensityResetRef.current) {
+        clearTimeout(intensityResetRef.current);
+      }
+    };
+  }, []);
+
+  const triggerMashAnimation = useCallback(() => {
+    // Restart animation by forcing a toggle
+    setIsMashing(false);
+
+    if (animationResetRef.current) {
+      clearTimeout(animationResetRef.current);
+    }
+
+    requestAnimationFrame(() => {
+      setIsMashing(true);
+    });
+
+    animationResetRef.current = window.setTimeout(() => {
+      setIsMashing(false);
+      animationResetRef.current = null;
+    }, 200);
+  }, []);
+
   const handleKeyPress = useCallback(async (e: KeyboardEvent) => {
     if (e.code === 'Space') {
       e.preventDefault();
@@ -59,10 +91,15 @@ function RageMeter({ user }: RageMeterProps) {
         return;
       }
 
-      if (isMashing) return;
-
-      setIsMashing(true);
+      triggerMashAnimation();
       setIntensity(1);
+      if (intensityResetRef.current) {
+        clearTimeout(intensityResetRef.current);
+      }
+      intensityResetRef.current = window.setTimeout(() => {
+        setIntensity(0);
+        intensityResetRef.current = null;
+      }, 200);
       
       try {
         await incrementRage(1);
@@ -70,17 +107,8 @@ function RageMeter({ user }: RageMeterProps) {
       } catch (error) {
         console.error('Error incrementing rage:', error);
       }
-      
-      // Reset intensity over time
-      setTimeout(() => {
-        setIntensity(0);
-      }, 200);
-      
-      setTimeout(() => {
-        setIsMashing(false);
-      }, 100);
     }
-  }, [user, isMashing, loadStats]);
+  }, [user, loadStats, triggerMashAnimation]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyPress);
@@ -139,6 +167,29 @@ function RageMeter({ user }: RageMeterProps) {
       } catch (error) {
         console.error('Clear stats error:', error);
       }
+    }
+  };
+
+  const handleSetScore = async () => {
+    if (!user) {
+      alert('You must be signed in to set the score.');
+      return;
+    }
+    
+    const targetScore = parseInt(targetScoreInput, 10);
+    
+    if (isNaN(targetScore) || targetScore < 0) {
+      alert('Please enter a valid non-negative number.');
+      return;
+    }
+    
+    try {
+      await setRageScore(targetScore);
+      await loadStats();
+      setTargetScoreInput('');
+    } catch (error: any) {
+      alert(error.message || 'Error setting score');
+      console.error('Set score error:', error);
     }
   };
 
@@ -244,6 +295,24 @@ function RageMeter({ user }: RageMeterProps) {
       {/* Developer buttons */}
       {showDevButtons && user && (
         <div className="dev-buttons">
+          <div className="dev-set-score">
+            <input
+              type="number"
+              min="0"
+              placeholder="Enter score"
+              value={targetScoreInput}
+              onChange={(e) => setTargetScoreInput(e.target.value)}
+              className="dev-score-input"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handleSetScore();
+                }
+              }}
+            />
+            <button onClick={handleSetScore} className="dev-btn set-score-btn">
+              SET SCORE
+            </button>
+          </div>
           <button onClick={handleResetScore} className="dev-btn reset-btn">
             RESET CURRENT SCORE
           </button>
